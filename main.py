@@ -1,6 +1,18 @@
 #!/usr/bin/env python3
+"""VoiceXML battelships
+
+Usage:
+  main.py [options]
+
+Options:
+  -h, --help                Show this screen.
+  -p NUMBER, --port=NUMBER  Port to listen on [default: 8080]
+  -l ADDR, --listen=ADDR    Address to listen on, by default all interfaces
+"""
+
 import datetime
 
+from docopt import docopt
 import tornado.ioloop
 import tornado.web
 
@@ -19,6 +31,7 @@ class HelloWorld(XMLHandler):
                     hour=curdate.hour, minute=curdate.minute)
 
 if __name__ == "__main__":
+    args = docopt(__doc__)
     loop = tornado.ioloop.IOLoop.current()
 
     # debug=True will reload the application if a file is changed,
@@ -26,7 +39,10 @@ if __name__ == "__main__":
     app = tornado.web.Application([
         (r"/dialog\.xml", HelloWorld)
     ], template_path="templates", debug=True)
-    app.listen(8080)
+
+    port = int(args['--port'])
+    address = args['--listen'] or ''
+    app.listen(port, address=address)
 
     # this starts the event loop. Tornado is single threaded,
     # and will sleep until it is notified of new events on one of
