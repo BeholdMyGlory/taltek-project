@@ -11,9 +11,11 @@ Options:
 """
 
 import datetime
+import uuid
 
 from docopt import docopt
 import tornado.ioloop
+import tornado.gen
 import tornado.web
 
 class XMLHandler(tornado.web.RequestHandler):
@@ -25,10 +27,27 @@ class XMLHandler(tornado.web.RequestHandler):
 # so changes to member variables won't be seen across requests
 class HelloWorld(XMLHandler):
     def get(self):
-        curdate = datetime.datetime.now()
-        self.render("dialog.xml", month=curdate.strftime("%B"),
-                    day=curdate.day,
-                    hour=curdate.hour, minute=curdate.minute)
+        token = uuid.uuid1().hex
+        self.render("dialog.xml", token=token)
+
+
+class FindMatchHandler(XMLHandler):
+    @tornado.gen.coroutine
+    def get(self):
+        print(self.get_argument("token"))
+        yield tornado.gen.sleep(9)
+        self.write("<response>yes</response>")
+
+placed_ships = {}
+ships = [("battleship", 4), ("submarine", 3), ("destroyer", 2)]
+
+class NextShipHandler(XMLHandler):
+    def get(self):
+        token = self.get_argument('token')
+        placed_ships[token] = placed_ships.get(token, -1) + 1
+        ship, length = ships[placed_ships[token]]
+        self.write('<response ship="{}" length="{}"/>'.format(ship, length))
+
 
 if __name__ == "__main__":
     args = docopt(__doc__)
@@ -37,7 +56,10 @@ if __name__ == "__main__":
     # debug=True will reload the application if a file is changed,
     # and disable the template cache, among other things
     app = tornado.web.Application([
-        (r"/dialog\.xml", HelloWorld)
+        (r"/dialog", HelloWorld),
+        (r"/findmatch", FindMatchHandler),
+        (r"/nextship", NextShipHandler),
+        (r"/static/(.*)", tornado.web.StaticFileHandler, {'path': 'static'})
     ], template_path="templates", debug=True)
 
     port = int(args['--port'])

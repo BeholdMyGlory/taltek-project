@@ -1,19 +1,73 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<vxml version="2.0" lang="en">
-    <form>
+<vxml version="2.1" lang="en">
+    <var name="token" expr="'{{token}}'"/>
+    <form id="start">
         <block>
             <prompt>
-                Hello. The current date is the {{ day }}{{
-                   ("th" if 11 <= day <= 19 else
-                    "st" if day % 10 == 1 else
-                    "nd" if day % 10 == 2 else
-                    "rd" if day % 10 == 3 else
-                    "th")
-                }} of {{ month }},
-                and the time is currently {{ hour }}
-                hour{{ "s" if hour != 1 else "" }} and {{ minute }}
-                minute{{ "s" if minute != 1 else "" }}.
+                Hello and welcome to battleships. Please wait while we
+                match you up with another player.
             </prompt>
+            <goto next="#match"/>
         </block>
+    </form>
+
+    <form id="match">
+        <block>
+            <data name="match" src="/findmatch"
+                  namelist="token" timeout="10s"
+                  fetchaudio="/static/silence.wav"/>
+
+            <if cond="match.documentElement.firstChild.nodeValue == 'yes'">
+                <prompt>
+                    Found another player. Before the game can begin, you
+                    need to choose where to place your 4 square long
+                    battleship, 3 square long submarine, and 2 square long
+                    destroyer.
+                </prompt>
+                <goto next="#place"/>
+            <else/>
+                <prompt>Waiting for another player.</prompt>
+                <goto next="#match"/>
+            </if>
+        </block>
+    </form>
+
+    <form id="place">
+        <var name="length"/>
+        <var name="ship"/>
+        <block>
+            <data name="nextship" src="/nextship" namelist="token"/>
+            <assign name="length" expr="nextship.documentElement.getAttribute('length')"/>
+            <assign name="ship" expr="nextship.documentElement.getAttribute('ship')"/>
+        </block>
+
+        <field name="orientation">
+            <grammar src="/static/grammar.xml#ORIENTATION"/>
+
+            <prompt>
+                Do you want to place your
+                <value expr="length"/>
+                square long
+                <value expr="ship"/>
+                vertically or horizontally?
+            </prompt>
+        </field>
+
+        <field name="coordinate">
+            <grammar src="/static/grammar.xml#COORDINATE"/>
+
+            <prompt>
+                Please specify the
+                <value expr="orientation == 'vertically' ? 'top-most' : 'left-most'"/>
+                coordinate of the <value expr="ship"/>.
+            </prompt>
+        </field>
+
+        <filled>
+            <prompt>
+                Will place the <value expr="ship"/> at coordinate <value expr="coordinate"/>.
+            </prompt>
+            <clear namelist="coordinate"/>
+        </filled>
     </form>
 </vxml>

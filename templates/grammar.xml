@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns="http://www.w3.org/2001/06/grammar" xml:lang="en-us" version="1.0">
+    <rule id="ORIENTATION">
+        <one-of>
+            <item>horizontally</item>
+            <item>vertically</item>
+        </one-of>
+    </rule>
+
+    <rule id="COORDINATE">
+        <item>
+            <ruleref uri="#LETTER"/>
+            <ruleref uri="#DIGIT"/>
+            <tag>out=rules.LETTER + rules.DIGIT</tag>
+        </item>
+    </rule>
+
+    <rule id="LETTER">
+        <one-of>
+            <item>A</item>
+            <item>B</item>
+            <item>C</item>
+            <item>D</item>
+            <item>E</item>
+            <item>F</item>
+        </one-of>
+    </rule>
+
+    <rule id="DIGIT">
+        <one-of>
+            <item>1</item>
+            <item>2</item>
+            <item>3</item>
+            <item>4</item>
+            <item>5</item>
+            <item>6</item>
+        </one-of>
+    </rule>
+</grammar>
