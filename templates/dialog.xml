@@ -1,73 +1,201 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <vxml version="2.1" lang="en">
+    <script src="/static/utils.js"/>
     <var name="token" expr="'{{token}}'"/>
-    <form id="start">
+
+    <form id="startform">
         <block>
             <prompt>
                 Hello and welcome to battleships. Please wait while we
                 match you up with another player.
             </prompt>
-            <goto next="#match"/>
+            <goto next="#matchingform"/>
         </block>
     </form>
 
-    <form id="match">
+    <form id="matchingform">
         <block>
-            <data name="match" src="/findmatch"
+            <data name="match" src="/waitforgame"
                   namelist="token" timeout="10s"
                   fetchaudio="/static/silence.wav"/>
 
-            <if cond="match.documentElement.firstChild.nodeValue == 'yes'">
+            <if cond="match.documentElement.getAttribute('ready') == 'true'">
                 <prompt>
                     Found another player. Before the game can begin, you
                     need to choose where to place your 4 square long
                     battleship, 3 square long submarine, and 2 square long
                     destroyer.
                 </prompt>
-                <goto next="#place"/>
+                <goto next="#placeshipform"/>
             <else/>
                 <prompt>Waiting for another player.</prompt>
-                <goto next="#match"/>
+                <goto next="#matchingform"/>
             </if>
         </block>
     </form>
 
-    <form id="place">
-        <var name="length"/>
-        <var name="ship"/>
+
+    <var name="coord" expr="null"/>
+    <var name="orientation" expr="null"/>
+    <var name="shipname"/>
+    <var name="shipsize"/>
+    <var name="placeship"/>
+
+    <form id="placeshipform">
         <block>
-            <data name="nextship" src="/nextship" namelist="token"/>
-            <assign name="length" expr="nextship.documentElement.getAttribute('length')"/>
-            <assign name="ship" expr="nextship.documentElement.getAttribute('ship')"/>
+            <if cond="coord == null">
+                <data name="placeship" src="/placeship" namelist="token"/>
+            <else/>
+                <data name="placeship" method="post" src="/placeship" namelist="token coord orientation"/>
+            </if>
+
+            <if cond="placeship.documentElement.hasAttribute('allowed')">
+                <if cond="placeship.documentElement.getAttribute('allowed') == 'yes'">
+                    <prompt>
+                        Placed the <value expr="shipname"/> at coordinate <value expr="coord"/>.
+                    </prompt>
+                <elseif cond="placeship.documentElement.getAttribute('allowed') == 'beyondfield'"/>
+                    <prompt>
+                        <value expr="coord"/> would place part or all of the <value expr="shipname"/>
+                        outside the board.
+                    </prompt>
+                <else/>
+                    <prompt>
+                        Cannot place the <value expr="shipname"/> at coordinate <value expr="coord"/>, as
+                        <value expr="splitCoords(placeship.documentElement.getAttribute('conflictingcoords')"/>
+                        <value expr="placeship.documentElement.getAttribute('conflictingcoords').
+                                split(' ').length > 1 ? 'are' : 'is'"/>
+                        already occupied.
+                    </prompt>
+                </if>
+            </if>
+
+            <if cond="!placeship.documentElement.hasAttribute('name')">
+                <goto next="#turn"/>
+            </if>
+
+            <assign name="shipname" expr="placeship.documentElement.getAttribute('name')"/>
+            <assign name="shipsize" expr="placeship.documentElement.getAttribute('size')"/>
         </block>
 
-        <field name="orientation">
+        <field name="shiporientation">
             <grammar src="/static/grammar.xml#ORIENTATION"/>
 
             <prompt>
                 Do you want to place your
-                <value expr="length"/>
+                <value expr="shipsize"/>
                 square long
-                <value expr="ship"/>
+                <value expr="shipname"/>
                 vertically or horizontally?
             </prompt>
         </field>
 
-        <field name="coordinate">
+        <field name="shipcoord">
             <grammar src="/static/grammar.xml#COORDINATE"/>
 
             <prompt>
                 Please specify the
-                <value expr="orientation == 'vertically' ? 'top-most' : 'left-most'"/>
-                coordinate of the <value expr="ship"/>.
+                <value expr="shiporientation == 'vertically' ? 'top-most' : 'left-most'"/>
+                coordinate of the <value expr="shipname"/>.
             </prompt>
         </field>
 
-        <filled>
+        <field name="confirm" type="boolean">
             <prompt>
-                Will place the <value expr="ship"/> at coordinate <value expr="coordinate"/>.
+                Do you wish to place your <value expr="shipsize"/> square long
+                <value expr="shipname"/> <value expr="shiporientation"/> at <value expr="shipcoord"/>?
             </prompt>
-            <clear namelist="coordinate"/>
+        </field>
+
+        <filled namelist="confirm">
+            <if cond="!confirm">
+                <clear/>
+            </if>
         </filled>
+
+        <filled>
+            <assign name="coord" expr="shipcoord"/>
+            <assign name="orientation" expr="shiporientation"/>
+            <goto next="#placeshipform"/>
+        </filled>
+    </form>
+
+    <form id="turn">
+        <block>
+            <data name="turninfo" src="/waitforturn"
+                  namelist="token" timeout="20s"
+                  fetchaudio="/static/silence.wav"/>
+
+            <if cond="turninfo.documentElement.getAttribute('gamestate') == 'wait'">
+                <prompt>Waiting for other player.</prompt>
+                <goto next="#turn"/>
+            <elseif cond="turninfo.documentElement.hasAttribute('shiptypehit')"/>
+                <var name="shiptypehit"   expr="attr(turninfo, 'shiptypehit')"/>
+                <var name="coordhit"      expr="attr(turninfo, 'coordhit')"/>
+                <var name="shippartsleft" expr="attr(turninfo, 'shippartsleft')"/>
+                <if cond="shiptypehit == ''">
+                    <prompt>
+                        Your opponent shot at
+                        <value expr="coordhit"/>
+                        and missed.
+                    </prompt>
+                <else/>
+                    <prompt>
+                        Your opponent <value expr="shippartsleft == '0' ? 'sunk' : 'hit'"/> your
+                        <value expr="shiptypehit"/> at <value expr="coordhit"/>.
+                    </prompt>
+                    <if cond="shippartsleft != '0'">
+                        <prompt>
+                            Your <value expr="shiptypehit"/> has <value expr="shippartsleft"/>
+                            squares remaining.
+                        </prompt>
+                    </if>
+                </if>
+            </if>
+
+            <if cond="attr(turninfo, 'gamestate') == 'won'">
+                <goto next="#won"/>
+            <elseif cond="attr(turninfo, 'gamestate') == 'lost'"/>
+                <goto next="#lost"/>
+            </if>
+        </block>
+
+        <field name="coord">
+            <grammar src="/static/grammar.xml#COORDINATE"/>
+            <prompt>Please specify a coordinate on your opponent's board to shoot at.</prompt>
+        </field>
+
+        <filled>
+            <data name="coordresult" src="/putcoord" namelist="token coord"/>
+            <var name="shot" expr="attr(coordresult, 'shot')"/>
+            <if cond="shot == 'alreadyshot'">
+                <prompt>
+                    You have already shot at <value expr="coord"/>.
+                    Please specify another coordinate.
+                </prompt>
+                <clear/>
+            <else/>
+                <if cond="shot == 'hit'">
+                    <prompt>You hit one of your opponent's ships.</prompt>
+                <elseif cond="shot == 'miss'"/>
+                    <prompt>You missed your opponent's ships.</prompt>
+                <elseif cond="shot == 'sunk'"/>
+                    <prompt>You sunk one of your opponent's ships.</prompt>
+                </if>
+                <goto next="#turn"/>
+            </if>
+        </filled>
+    </form>
+
+    <form id="won">
+        <block>
+            Congratulations, you have sunk all your opponent's ships!
+        </block>
+    </form>
+
+    <form id="lost">
+        <block>
+            Too bad, your opponent has sunk all your ships.
+        </block>
     </form>
 </vxml>
