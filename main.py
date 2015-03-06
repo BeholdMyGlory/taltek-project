@@ -26,7 +26,9 @@ class XMLHandler(tornado.web.RequestHandler):
         self.set_header("Content-Type", "application/xml")
 
     def write_xml(self, tagname="response", **attributes):
-        self.write(etree.tostring(etree.Element(tagname, **attributes)))
+        response = etree.tostring(etree.Element(tagname, **attributes))
+        logger.debug("Response: %s", response)
+        self.write(response)
 
 # new instances of the request handlers are created on every request,
 # so changes to member variables won't be seen across requests
@@ -78,6 +80,7 @@ if __name__ == "__main__":
     loop = tornado.ioloop.IOLoop.current()
     logger = logging.getLogger('battleships-web')
     logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.FileHandler("battleships.log"))
 
     # debug=True will reload the application if a file is changed,
     # and disable the template cache, among other things
