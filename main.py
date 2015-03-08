@@ -16,6 +16,7 @@ import time
 
 from docopt import docopt
 from lxml import etree
+import sys
 import tornado.ioloop
 import tornado.gen
 import tornado.web
@@ -195,6 +196,7 @@ if __name__ == "__main__":
     logger = logging.getLogger('battleships-web')
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.FileHandler("battleships.log"))
+    logger.addHandler(logging.StreamHandler(stream=sys.stderr))
 
     # debug=True will reload the application if a file is changed,
     # and disable the template cache, among other things
@@ -211,7 +213,7 @@ if __name__ == "__main__":
     port = int(args['--port'])
     address = args['--listen'] or ''
     app.listen(port, address=address)
-
+    logger.debug('Server listening on %s:%s' % (address, port))
     GAMES = SessionTokenToGame()
 
     # this starts the event loop. Tornado is single threaded,
