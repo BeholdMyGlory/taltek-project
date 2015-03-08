@@ -101,7 +101,6 @@ class Game(object):
         else:
             return None
 
-
     def place_ship(self, player_token, top_left_coord, orientation):
         """
         Places the *current* ship (returned by get_ship_to_place)
@@ -210,7 +209,7 @@ class Grid(object):
     FIELD_SHOT = "SHOT"
 
     def __init__(self):
-        self.field = [[None for _ in range(self.GRID_SIZE)] for i in range(self.GRID_SIZE)]
+        self.field = [[None for _ in range(self.GRID_SIZE)] for _ in range(self.GRID_SIZE)]
 
     def __getitem__(self, coord):
         return self.field[coord.x][coord.y]
