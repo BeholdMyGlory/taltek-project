@@ -41,7 +41,6 @@ class SessionTokenToGame(object):
 
     def __getitem__(self, player_token):
         if player_token not in self.session_token_game_dict:
-            logger.debug('new token')
             self.session_token_game_dict[player_token] = None
             self.unmatched_players.add(player_token)
 
@@ -49,7 +48,7 @@ class SessionTokenToGame(object):
             unmatched_player = self.unmatched_players.pop()
             if unmatched_player == player_token:  # oops, we popped ourselves, let's pop once more
                 unmatched_player = self.unmatched_players.pop()
-            logger.debug('matrching players')
+            logger.debug('Matching players %s and %s' % (unmatched_player, player_token))
             self.unmatched_players.discard(player_token)
 
             new_game = game.Game(unmatched_player, player_token)
