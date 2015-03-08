@@ -114,10 +114,10 @@ class Game(object):
         ship_to_place = self.get_ship_to_place(player_token)
         grid = self.grids[player_token]
         if orientation is Orientation.horizontal:
-            coord_range_x = range(top_left_coord.x, ship_to_place.size)
+            coord_range_x = range(top_left_coord.x, top_left_coord.x + ship_to_place.size)
             coords = [Coord(x, top_left_coord.y) for x in coord_range_x]
         else:
-            coord_range_y = range(top_left_coord.y, ship_to_place.size)
+            coord_range_y = range(top_left_coord.y, top_left_coord.y + ship_to_place.size)
             coords = [Coord(top_left_coord.x, y) for y in coord_range_y]
 
         grid.put(ship_to_place, coords)
