@@ -62,7 +62,7 @@
                 <else/>
                     <prompt>
                         Cannot place the <value expr="shipname"/> at coordinate <value expr="coord"/>, as
-                        <value expr="splitCoords(placeship.documentElement.getAttribute('conflictingcoords')"/>
+                        <value expr="splitCoords(placeship.documentElement.getAttribute('conflictingcoords'))"/>
                         <value expr="placeship.documentElement.getAttribute('conflictingcoords').
                                 split(' ').length > 1 ? 'are' : 'is'"/>
                         already occupied.
