@@ -168,7 +168,7 @@
         <filled>
             <data name="coordresult" src="/putcoord" namelist="token coord"/>
             <var name="shot" expr="attr(coordresult, 'shot')"/>
-            <if cond="shot == 'alreadyshot'">
+            <if cond="shot == 'alreadyShot'">
                 <prompt>
                     You have already shot at <value expr="coord"/>.
                     Please specify another coordinate.
