@@ -1,6 +1,8 @@
 import collections
 from copy import copy
 from enum import Enum
+import functools
+from types import MethodType
 
 Orientation = Enum('Orientation', 'horizontal vertical')
 GameState = Enum('GameState', 'won lost canPlay wait')
@@ -15,6 +17,29 @@ class Ship(object):
 
     def __repr__(self):
         return 'Ship(%s, %s, %s)' % (self.name, self.size, self.fields_intact)
+
+class GameProxy(object):
+    """
+    Convenience proxy for accessing Game instances in the perspective of one player.
+    All methods in Game take the session token of the current player as parameter.
+    This object enables one to omit this parameter.
+    """
+
+    def __init__(self, game, player_token):
+        """
+        :param game: game to build the proxy for
+        :param player_token: the player to create the proxy for.
+        """
+        self.__player_token = player_token
+        self.__game = game
+
+    def __getattr__(self, item):
+        attr = getattr(self.__game, item)
+
+        if isinstance(attr, MethodType):
+            return functools.partial(attr, self.__player_token)
+        else:
+            return attr
 
 
 class Game(object):

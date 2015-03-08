@@ -53,8 +53,8 @@ class SessionTokenToGame(object):
             self.unmatched_players.discard(player_token)
 
             new_game = game.Game(unmatched_player, player_token)
-            self.session_token_game_dict[unmatched_player] = new_game
-            self.session_token_game_dict[player_token] = new_game
+            self.session_token_game_dict[unmatched_player] = game.GameProxy(new_game, unmatched_player)
+            self.session_token_game_dict[player_token] = game.GameProxy(new_game, player_token)
 
         return self.session_token_game_dict[player_token]
 
@@ -121,7 +121,7 @@ class PlaceShipHandler(DynamicDataHandler):
         self.write_xml(**self.out)
 
     def _add_next_ship_info_to_output(self):
-        ship = self.game.get_ship_to_place(self.token)
+        ship = self.game.get_ship_to_place()
         if ship:
             self.out.update({
                 'name': ship.name,
@@ -144,7 +144,7 @@ class PlaceShipHandler(DynamicDataHandler):
 
         orientation = map_orientation[self.get_argument('orientation')]
         try:
-            self.game.place_ship(self.token, top_left_coord=coord, orientation=orientation)
+            self.game.place_ship(top_left_coord=coord, orientation=orientation)
         except game.OccupiedFieldsException as e:
             self.out['conflictingcoords'] = ' '.join(str(occ) for occ in e.occupied_fields)
             self.out['allowed'] = 'conflict'
@@ -158,11 +158,11 @@ class WaitForTurnHandler(DynamicDataHandler):
     @tornado.gen.coroutine
     def get(self):
         logger.debug("WaitForTurn: %s", self.request.query)
-        game_state = yield from self.check_with_timeout(lambda: self.game.get_game_state(self.token),
+        game_state = yield from self.check_with_timeout(lambda: self.game.get_game_state(),
                                                         timeout_value=game.GameState.wait)
         self.out['gamestate'] = game_state.name
         if game_state == game.GameState.canPlay:
-            (coord, what_was_at_coord) = self.game.get_last_opponent_move(self.token)
+            (coord, what_was_at_coord) = self.game.get_last_opponent_move()
             if coord:
                 self.out['coordhit'] = str(coord)
             if what_was_at_coord:
@@ -175,7 +175,7 @@ class PutCoordHandler(DynamicDataHandler):
     def get(self):
         logger.debug("PutCoord: %s", self.request.query)
         coord = game.Coord(*self.get_argument('coord'))
-        shot_result = self.game.shoot_field(self.token, coord)
+        shot_result = self.game.shoot_field(coord)
         self.out['shot'] = shot_result.name
         self.write_xml(**self.out)
 
