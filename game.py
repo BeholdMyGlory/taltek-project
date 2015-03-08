@@ -67,9 +67,8 @@ class Game(object):
 
     def get_game_state(self, player_token):
         """
-
-        :param player_token:
-        :return:
+        :param player_token: unique player token
+        :return: GameState
         """
         all_ships_placed = not self.ships_to_place[self.p1_token] and not self.ships_to_place[self.p1_token]
 
@@ -106,7 +105,7 @@ class Game(object):
         Places the *current* ship (returned by get_ship_to_place)
         :param player_token: unique player token
         :param top_left_coord: top left Coord of the ship on the field
-        :param orientation: orientation of the ship on the field, e.g. Orientation.vertical
+        :param orientation: Orientation of the ship on the field, e.g. Orientation.vertical
         :raises OccupiedFieldsException if fields are blocked by other ships
         :raises IndexError if coord out of range
         """
@@ -125,9 +124,9 @@ class Game(object):
 
     def shoot_field(self, player_token, opponent_field_coord):
         """
-
-        :param player_token:
-        :param opponent_field_coord:
+        shoots a field on the opponent's given by opponent_field_coord.
+        :param player_token: player_token
+        :param opponent_field_coord: the coordinate to shoot on the opponent's field
         :return: a ShotResult
         """
         if self.get_game_state(player_token) != GameState.canPlay:
@@ -198,7 +197,6 @@ class OccupiedFieldsException(Exception):
         """
         :param message: exception message
         :param occupied_fields: list of Coord-objects denoting the fields that are occupied
-        :return:
         """
         super(Exception, self).__init__(message)
         self.occupied_fields = occupied_fields
