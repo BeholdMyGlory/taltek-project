@@ -139,6 +139,7 @@ class Game(object):
         shot_result = None
         if what_is_at_coord is None:
             shot_result = ShotResult.miss
+            opponent_field[opponent_field_coord] = Grid.FIELD_SHOT
         elif what_is_at_coord is Grid.FIELD_SHOT:
             shot_result = ShotResult.alreadyShot
         else:
