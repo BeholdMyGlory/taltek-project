@@ -46,12 +46,12 @@ class Game(object):
     """ Represents the game logic  """
 
     AVAILABLE_SHIPS = [
-        (Ship('Battleship', 4, 4), 1),
-        (Ship('Destroyer', 3, 3), 1),
-        (Ship('Submarine', 2, 2), 2),
-        # (Ship('Testship', 1, 1), 1),
+        (Ship('Battleship', 4), 1),
+        (Ship('Destroyer', 3), 1),
+        (Ship('Submarine', 2), 2),
     ]
-    """ Initial list of number of ships available for each type as list of tuples (ship, count)
+    """
+    Initial list of number of ships available for each type as list of tuples (ship, count)
     """
 
     def __init__(self, p1_token, p2_token):
