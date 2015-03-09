@@ -102,8 +102,8 @@
 
         <field name="confirm" type="boolean">
             <prompt>
-                Do you wish to place your <value expr="shipsize"/> square long
-                <value expr="shipname"/> <value expr="shiporientation"/> at <value expr="shipcoord"/>?
+                Is <value expr="shiporientation"/> at <value expr="shipcoord"/>  where you want to place your <value expr="shipsize"/> square long
+                <value expr="shipname"/>?
             </prompt>
         </field>
 
