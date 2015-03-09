@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Battleships</title>
+
+        <style>
+
+        #grid {
+            display: table;
+        }
+
+        #grid > div {
+            display: table-row;
+        }
+
+        #grid > div > div {
+            display: table-cell;
+            width: 30px;
+            height: 30px;
+            border: 1px solid black;
+            cursor: pointer;
+        }
+
+        #grid > div > div:hover {
+            background-color: gray;
+        }
+
+        </style>
+
+        <script>
+        var isProcessingRequest = false
+
+        function queryString(params) {
+            var str = []
+            for (var p in params) {
+                if (params.hasOwnProperty(p)) {
+                    str.push(encodeURIComponent(p) + "=" + encodeURIComponent(params[p]))
+                }
+            }
+            return str.join("&")
+        }
+
+        function formData(params) {
+            var fd = new FormData()
+            for (var p in params) {
+                if (params.hasOwnProperty(p)) {
+                    fd.append(p, params[p])
+                }
+            }
+            return fd
+        }
+
+        function sendRequest(url, method, params) {
+            return new Promise(function(resolve, reject) {
+                if (isProcessingRequest) {
+                    reject(false)
+                    return
+                }
+
+                isProcessingRequest = true
+                var request = new XMLHttpRequest();
+                request.timeout = 20000
+                request.onreadystatechange = function() {
+                    if (this.readyState == XMLHttpRequest.DONE) {
+                        isProcessingRequest = false
+                        if (this.status == 200) {
+                            resolve(this.responseXML.firstChild)
+                        } else {
+                            reject(true)
+                        }
+                    }
+                }
+
+                if (method.toLowerCase() == "get") {
+                    request.open(method, url + "?" + queryString(params))
+                    request.send()
+                } else if (method.toLowerCase() == "post") {
+                    request.open(method, url)
+                    request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded")
+                    request.send(queryString(params))
+                }
+            })
+        }
+
+        </script>
+    </head>
+    <body>
+        <div id="status">Waiting for other player...</div>
+
+        <div>
+            <select id="orientation">
+                <option value="horizontally">Horizontally</option>
+                <option value="vertically">Vertically</option>
+            </select>
+        </div>
+        <div id="grid">
+            {% for y in range(gridsize) %}
+            <div>
+                {% for x in range(gridsize) %}
+                <div onclick="coordClicked({{ x }}, {{ y }})"></div>
+                {% end %}
+            </div>
+            {% end %}
+        </div>
+
+        <script>
+        var token = "{{ token }}"
+        var gameState = "none"
+
+        function waitForGame() {
+            sendRequest("/waitforgame", "GET", {token: token}).then(function(response) {
+                if (response.getAttribute('ready') == "true") {
+                    placeShip(null, null)
+                } else {
+                    waitForGame()
+                }
+            })
+        }
+        waitForGame()
+
+        function coordClicked(x, y) {
+            var coord = String.fromCharCode(65 + x) + (y + 1)
+            if (gameState == "place") {
+                placeShip(coord, document.getElementById("orientation").value)
+            } else if (gameState == "coord") {
+                putCoord(coord)
+            }
+        }
+
+        function placeShip(coord, orientation) {
+            (coord == null ? sendRequest("/placeship", "GET", {token: token})
+                           : sendRequest("/placeship", "POST",
+                                         {token: token, coord: coord,
+                                          orientation: orientation})).then(function(response) {
+                if (!response.hasAttribute('name')) {
+                    waitForTurn()
+                } else {
+                    var s = ""
+                    if (response.hasAttribute('allowed')) {
+                        if (response.getAttribute('allowed') != "yes") {
+                            s += "Cannot place the ship there. "
+                        } else {
+                            s += "Placed ship. "
+                        }
+                    }
+                    s += ("Please choose where to place your " +
+                            response.getAttribute('size') + " square long " +
+                            response.getAttribute('name'))
+                    gameState = "place"
+                    setStatus(s)
+                }
+            })
+        }
+
+        function waitForTurn() {
+            setStatus("Waiting for other player")
+            gameState = "waiting"
+            sendRequest("/waitforturn", "GET", {token: token}).then(function(response) {
+                var state = response.getAttribute('gamestate')
+                if (state == "wait") {
+                    waitForTurn()
+                } else if (state == "won") {
+                    setStatus("You won!")
+                    gameState = "won"
+                } else if (state == "lost") {
+                    setStatus("You lost!")
+                    gameState = "lost"
+                } else if (state == "canPlay") {
+                    if (response.hasAttribute("shiptypehit")) {
+                        setStatus("Your opponent hit your " + response.getAttribute("shiptypehit") +
+                                    " on coordinate " + response.getAttribute("coordhit") + ". " +
+                                    response.getAttribute("shippartsleft") + " squares left.")
+                    }
+                    setStatus("Choose where to shoot.")
+                    gameState = "coord"
+                }
+            })
+        }
+
+        function putCoord(coord) {
+            sendRequest("/putcoord", "GET", {token: token, coord: coord}).then(function(response) {
+                var shot = response.getAttribute('shot')
+                if (shot == "hit") {
+                    setStatus("Hit an enemy ship!", true)
+                    waitForTurn()
+                } else if (shot == "miss") {
+                    setStatus("Missed an enemy ship.", true)
+                    waitForTurn()
+                } else if (shot == "sunk") {
+                    setStatus("Sunk an enemy ship!", true)
+                    waitForTurn()
+                } else if (shot == "alreadyShot") {
+                    setStatus("You've already shot there.", true)
+                }
+            })
+        }
+
+        var gameStatus = document.getElementById('status').firstChild
+        var _appendnext = false
+        function setStatus(text, appendnext) {
+            if (_appendnext) {
+                gameStatus.nodeValue += " " + text
+            } else {
+                gameStatus.nodeValue = text
+            }
+            _appendnext = appendnext
+        }
+        </script>
+    </body>
+</html>

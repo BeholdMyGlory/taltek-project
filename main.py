@@ -59,6 +59,10 @@ class SessionTokenToGame(object):
 
         return self.session_token_game_dict[player_token]
 
+    @classmethod
+    def generate_token(self):
+        return uuid.uuid1().hex
+
 
 class XMLHandler(tornado.web.RequestHandler):
     # called before running any other methods (get, post, etc)
@@ -77,7 +81,7 @@ class XMLHandler(tornado.web.RequestHandler):
 class DialogHandler(XMLHandler):
     def get(self):
         template_data = {
-            'token': uuid.uuid1().hex,
+            'token': SessionTokenToGame.generate_token(),
             'grid_size': game.Game.GRID_SIZE,
             'ships': game.Game.AVAILABLE_SHIPS,
         }
@@ -204,6 +208,11 @@ class LogHandler(XMLHandler):
         self.write_xml()
 
 
+class WebViewHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render("webview.html", token=SessionTokenToGame.generate_token(),
+                    gridsize=game.Game.GRID_SIZE)
+
 if __name__ == "__main__":
     args = docopt(__doc__)
     loop = tornado.ioloop.IOLoop.current()
@@ -221,6 +230,7 @@ if __name__ == "__main__":
                                       (r"/waitforturn", WaitForTurnHandler),
                                       (r"/putcoord", PutCoordHandler),
                                       (r"/log", LogHandler),
+                                      (r"/webview", WebViewHandler),
                                       (r"/static/(.*)", tornado.web.StaticFileHandler, {'path': 'static'})
                                   ], template_path="templates", debug=True)
 
