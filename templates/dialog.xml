@@ -130,6 +130,7 @@
                     <var name="shiptypehit"   expr="attr(turninfo, 'shiptypehit')"/>
                     <var name="shippartsleft" expr="attr(turninfo, 'shippartsleft')"/>
                     <prompt>
+                        <audio src="/static/hit1.wav"/>
                         Your opponent <value expr="shippartsleft == '0' ? 'sunk' : 'hit'"/> your
                         <value expr="shiptypehit"/> at <value expr="coordhit"/>.
                     </prompt>
@@ -141,6 +142,7 @@
                     </if>
                 <else/>
                     <prompt>
+                        <audio src="/static/miss.wav"/>
                         Your opponent shot at
                         <value expr="coordhit"/>
                         and missed.
@@ -175,11 +177,11 @@
                 <clear/>
             <else/>
                 <if cond="shot == 'hit'">
-                    <prompt>You hit one of your opponent's ships.</prompt>
+                    <prompt><audio src="/static/hit1.wav"/> You hit one of your opponent's ships.</prompt>
                 <elseif cond="shot == 'miss'"/>
-                    <prompt>You missed your opponent's ships.</prompt>
+                    <prompt><audio src="/static/miss.wav"/> You missed your opponent's ships.</prompt>
                 <elseif cond="shot == 'sunk'"/>
-                    <prompt>You sunk one of your opponent's ships.</prompt>
+                    <prompt><audio src="/static/hit1.wav"/> You sunk one of your opponent's ships.</prompt>
                 </if>
                 <goto next="#turn"/>
             </if>
