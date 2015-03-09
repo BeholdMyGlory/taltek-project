@@ -1,0 +1,17 @@
+<field name="confirm" type="boolean">
+    {% if explicit_feedback %}
+    <prompt>{% raw explicit %}</prompt>
+    {% else %}
+    <prompt timeout="{{ timeout }}">{% raw implicit %}</prompt>
+    <noinput>
+        {% raw action %}
+    </noinput>
+    {% end %}
+    <filled>
+        <if cond="confirm">
+            {% raw action %}
+        <else/>
+            <clear namelist="{{ ' '.join(fields) }} confirm"/>
+        </if>
+    </filled>
+</field>

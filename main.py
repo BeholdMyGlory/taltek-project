@@ -84,6 +84,8 @@ class DialogHandler(XMLHandler):
             'token': SessionTokenToGame.generate_token(),
             'grid_size': game.Game.GRID_SIZE,
             'ships': game.Game.AVAILABLE_SHIPS,
+            'explicit_feedback': True,
+            'feedback_timeout': '1s'
         }
         self.render("dialog.xml", **template_data)
 
