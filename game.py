@@ -18,6 +18,7 @@ class Ship(object):
     def __repr__(self):
         return 'Ship(%s, %s, %s)' % (self.name, self.size, self.fields_intact)
 
+
 class GameProxy(object):
     """
     Convenience proxy for accessing Game instances in the perspective of one player.

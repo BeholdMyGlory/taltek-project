@@ -75,12 +75,12 @@ class XMLHandler(tornado.web.RequestHandler):
 # so changes to member variables won't be seen across requests
 class DialogHandler(XMLHandler):
     def get(self):
-        templateData = {
+        template_data = {
             'token': uuid.uuid1().hex,
             'grid_size': game.Game.GRID_SIZE,
             'ships': game.Game.AVAILABLE_SHIPS,
         }
-        self.render("dialog.xml", **templateData)
+        self.render("dialog.xml", **template_data)
 
 
 class DynamicDataHandler(XMLHandler):
@@ -128,7 +128,6 @@ class PlaceShipHandler(DynamicDataHandler):
         if not self.game:
             raise Exception('no_game')
 
-
     def get(self):
         logger.debug("GET-PlaceShip: %s", self.request.query)
         self._add_next_ship_info_to_output()
@@ -141,7 +140,6 @@ class PlaceShipHandler(DynamicDataHandler):
                 'name': ship.name,
                 'size': str(ship.size),
             })
-
 
     def post(self):
         logger.debug("POST-PlaceShip: %s", self.request.body)
