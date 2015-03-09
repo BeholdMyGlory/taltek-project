@@ -147,7 +147,7 @@
                     <if cond="shippartsleft != '0'">
                         <prompt>
                             Your <value expr="shiptypehit"/> has <value expr="shippartsleft"/>
-                            squares remaining.
+                            square<value expr="shippartsleft != '1' ? 's' : ''"/> remaining.
                         </prompt>
                     </if>
                 </if>
