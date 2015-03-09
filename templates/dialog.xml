@@ -51,9 +51,9 @@
 
             <if cond="placeship.documentElement.hasAttribute('allowed')">
                 <if cond="placeship.documentElement.getAttribute('allowed') == 'yes'">
-                    <prompt>
+                    <!--<prompt>
                         Placed the <value expr="shipname"/> at coordinate <value expr="coord"/>.
-                    </prompt>
+                    </prompt>-->
                 <elseif cond="placeship.documentElement.getAttribute('allowed') == 'beyondfield'"/>
                     <prompt>
                         <value expr="coord"/> would place part or all of the <value expr="shipname"/>
