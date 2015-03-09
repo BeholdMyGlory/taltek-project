@@ -186,9 +186,8 @@
             <if cond="shot == 'alreadyShot'">
                 <prompt>
                     You have already shot at <value expr="coord"/>.
-                    Please specify another coordinate.
                 </prompt>
-                <clear/>
+                <clear namelist="coord confirm"/>
             <else/>
                 <if cond="shot == 'hit'">
                     <prompt><audio src="/static/hit1.wav"/> You hit one of your opponent's ships.</prompt>
