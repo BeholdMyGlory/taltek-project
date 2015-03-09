@@ -45,6 +45,11 @@ class GameProxy(object):
 class Game(object):
     """ Represents the game logic  """
 
+    GRID_SIZE = 6
+    """
+    Size of the grid/field
+    """
+
     AVAILABLE_SHIPS = [
         (Ship('Battleship', 4), 1),
         (Ship('Destroyer', 3), 1),
@@ -79,8 +84,8 @@ class Game(object):
             p2_token: p2_ships,
         }
         self.grids = {
-            p1_token: Grid(),
-            p2_token: Grid(),
+            p1_token: Grid(Game.GRID_SIZE),
+            p2_token: Grid(Game.GRID_SIZE),
         }
 
         self.moves_done = {
@@ -228,12 +233,10 @@ class OccupiedFieldsException(Exception):
 
 
 class Grid(object):
-    GRID_SIZE = 6
-
     FIELD_SHOT = "SHOT"
 
-    def __init__(self):
-        self.field = [[None for _ in range(self.GRID_SIZE)] for _ in range(self.GRID_SIZE)]
+    def __init__(self, grid_size):
+        self.field = [[None for _ in range(grid_size)] for _ in range(grid_size)]
 
     def __getitem__(self, coord):
         return self.field[coord.x][coord.y]
