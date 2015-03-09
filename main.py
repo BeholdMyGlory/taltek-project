@@ -13,10 +13,11 @@ Options:
 import logging
 import uuid
 import time
+import sys
+import traceback
 
 from docopt import docopt
 from lxml import etree
-import sys
 import tornado.ioloop
 import tornado.gen
 import tornado.web
@@ -101,6 +102,15 @@ class DynamicDataHandler(XMLHandler):
             elif time.time() - start_time > self.TIMEOUT_SECONDS:
                 return timeout_value
             yield tornado.gen.sleep(self.POLL_INTERVAL_SECONDS)
+
+    def write_error(self, status_code, **kwargs):
+        (exc_type, value, tb) = kwargs['exc_info']
+        error_data = {
+            'type': exc_type.__name__,
+            'message': getattr(value, 'message', '') or getattr(value, 'log_message', ''),
+            'traceback': traceback.extract_tb(tb),
+        }
+        self.render("error.xml", **error_data)
 
 
 class WaitForGameHandler(DynamicDataHandler):

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<error type="{{ type }}" message="{{ message }}">
+    <traceback>
+        {% for (file, line_number, function, text) in traceback %}
+        <frame>
+            <file>{{ file }}</file>
+            <linenumber>{{ line_number }}</linenumber>
+            <function>{{ function }}</function>
+            <text>{{ text }}</text>
+        </frame>
+        {% end %}
+    </traceback>
+</error>
+
