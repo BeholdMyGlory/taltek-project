@@ -12,8 +12,7 @@ Options:
 
 import logging
 import uuid
-import time
-import sys
+import math
 import traceback
 
 from docopt import docopt
@@ -91,25 +90,10 @@ class DialogHandler(XMLHandler):
 
 
 class DynamicDataHandler(XMLHandler):
-    TIMEOUT_SECONDS = 9.0
-    POLL_INTERVAL_SECONDS = 0.5
-
     def prepare(self):
         super().prepare()
         self.token = self.get_argument('token')
         self.out = {}
-
-    def check_with_timeout(self, what, timeout_value=None):
-        # TODO: refector to be idiomatic
-        start_time = time.time()
-        result = None
-        while True:
-            result = what()
-            if result != timeout_value:
-                return result
-            elif time.time() - start_time > self.TIMEOUT_SECONDS:
-                return timeout_value
-            yield tornado.gen.sleep(self.POLL_INTERVAL_SECONDS)
 
     def write_error(self, status_code, **kwargs):
         (exc_type, value, tb) = kwargs['exc_info']
@@ -119,6 +103,27 @@ class DynamicDataHandler(XMLHandler):
             'traceback': traceback.extract_tb(tb),
         }
         self.render("error.xml", **error_data)
+
+
+class PollDynamicDataHandler(DynamicDataHandler):
+    POLL_INTERVAL_SECONDS = 0.5
+
+    def check_with_timeout(self, what, as_long_as_returns=None, timeout_seconds=0.0):
+        # TODO: refactor to be idiomatic wrt. to Tornado!
+
+        if timeout_seconds > 0:
+            times = math.floor(timeout_seconds / self.POLL_INTERVAL_SECONDS)
+        else:
+            times = 1
+        if not times:
+            times = 1
+
+        for _ in range(times):
+            result = what()
+            if result != as_long_as_returns:
+                return result
+            yield tornado.gen.sleep(self.POLL_INTERVAL_SECONDS)
+        return result
 
 
 class GameVanishedException(Exception):
@@ -140,11 +145,13 @@ class GameDynamicDataHandler(DynamicDataHandler):
             raise GameVanishedException()
 
 
-class WaitForGameHandler(DynamicDataHandler):
+class WaitForGameHandler(PollDynamicDataHandler):
     @tornado.gen.coroutine
     def get(self):
         logger.debug("WaitForGame: %s", self.request.query)
-        ready = yield from self.check_with_timeout(lambda: GAMES.get_game(self.token), None)
+        timeout_seconds = float(self.get_argument('timeout', 0))
+        ready = yield from self.check_with_timeout(lambda: GAMES.get_game(self.token), as_long_as_returns=None,
+                                                   timeout_seconds=timeout_seconds)
         self.out['ready'] = str(bool(ready)).lower()
         self.write_xml(**self.out)
 
@@ -193,12 +200,14 @@ class PlaceShipHandler(GameDynamicDataHandler):
         self.write_xml(**self.out)
 
 
-class WaitForTurnHandler(GameDynamicDataHandler):
+class WaitForTurnHandler(GameDynamicDataHandler, PollDynamicDataHandler):
     @tornado.gen.coroutine
     def get(self):
         logger.debug("WaitForTurn: %s", self.request.query)
+        timeout_seconds = float(self.get_argument('timeout', 0))
         game_state = yield from self.check_with_timeout(lambda: self.game.get_game_state(),
-                                                        timeout_value=game.GameState.wait)
+                                                        as_long_as_returns=game.GameState.wait,
+                                                        timeout_seconds=timeout_seconds)
         self.out['gamestate'] = game_state.name
         if game_state == game.GameState.canPlay:
             (coord, what_was_at_coord) = self.game.get_last_opponent_move()
