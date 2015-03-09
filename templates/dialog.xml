@@ -213,7 +213,14 @@
         </block>
     </form>
 
+    <catch event="error">
+        <prompt>I am afraid, but an unknown error occurred. Please try calling again. Good bye!</prompt>
+        <disconnect/>
+    </catch>
     <catch event="connection.disconnect.hangup">
+        <submit method="post" namelist="token" next="/quitapp"/>
+    </catch>
+    <catch event="exit">
         <submit method="post" namelist="token" next="/quitapp"/>
     </catch>
 </vxml>
