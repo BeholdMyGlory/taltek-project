@@ -101,7 +101,7 @@ class Game(object):
         :param player_token: unique player token
         :return: GameState
         """
-        all_ships_placed = not self.ships_to_place[self.p1_token] and not self.ships_to_place[self.p1_token]
+        all_ships_placed = not self.ships_to_place[self.p1_token] and not self.ships_to_place[self.p2_token]
 
         state = GameState.wait
         if not sum((ship.fields_intact for ship in self.own_ships[player_token])):
