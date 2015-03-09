@@ -127,17 +127,11 @@
             <if cond="turninfo.documentElement.getAttribute('gamestate') == 'wait'">
                 <prompt>Waiting for other player.</prompt>
                 <goto next="#turn"/>
-            <elseif cond="turninfo.documentElement.hasAttribute('shiptypehit')"/>
-                <var name="shiptypehit"   expr="attr(turninfo, 'shiptypehit')"/>
-                <var name="coordhit"      expr="attr(turninfo, 'coordhit')"/>
-                <var name="shippartsleft" expr="attr(turninfo, 'shippartsleft')"/>
-                <if cond="shiptypehit == ''">
-                    <prompt>
-                        Your opponent shot at
-                        <value expr="coordhit"/>
-                        and missed.
-                    </prompt>
-                <else/>
+            <elseif cond="turninfo.documentElement.hasAttribute('coordhit')"/>
+                <var name="coordhit" expr="attr(turninfo, 'coordhit')"/>
+                <if cond="turninfo.documentElement.hasAttribute('shiptypehit')">
+                    <var name="shiptypehit"   expr="attr(turninfo, 'shiptypehit')"/>
+                    <var name="shippartsleft" expr="attr(turninfo, 'shippartsleft')"/>
                     <prompt>
                         Your opponent <value expr="shippartsleft == '0' ? 'sunk' : 'hit'"/> your
                         <value expr="shiptypehit"/> at <value expr="coordhit"/>.
@@ -148,6 +142,12 @@
                             square<value expr="shippartsleft != '1' ? 's' : ''"/> remaining.
                         </prompt>
                     </if>
+                <else/>
+                    <prompt>
+                        Your opponent shot at
+                        <value expr="coordhit"/>
+                        and missed.
+                    </prompt>
                 </if>
             </if>
 
