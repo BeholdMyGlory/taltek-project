@@ -107,16 +107,14 @@
             </prompt>
         </field>
 
-        <filled namelist="confirm">
-            <if cond="!confirm">
+        <filled>
+            <if cond="confirm">
+                <assign name="coord" expr="shipcoord"/>
+                <assign name="orientation" expr="shiporientation"/>
+                <goto next="#placeshipform"/>
+            <else/>
                 <clear/>
             </if>
-        </filled>
-
-        <filled>
-            <assign name="coord" expr="shipcoord"/>
-            <assign name="orientation" expr="shiporientation"/>
-            <goto next="#placeshipform"/>
         </filled>
     </form>
 
@@ -165,24 +163,32 @@
             <prompt>Please specify a coordinate on your opponent's board to shoot at.</prompt>
         </field>
 
+        <field name="confirm" type="boolean">
+            <prompt>Is <value expr="coord"/> the coordinate you want to shoot at?</prompt>
+        </field>
+
         <filled>
-            <data name="coordresult" src="/putcoord" namelist="token coord"/>
-            <var name="shot" expr="attr(coordresult, 'shot')"/>
-            <if cond="shot == 'alreadyShot'">
-                <prompt>
-                    You have already shot at <value expr="coord"/>.
-                    Please specify another coordinate.
-                </prompt>
-                <clear/>
-            <else/>
-                <if cond="shot == 'hit'">
-                    <prompt>You hit one of your opponent's ships.</prompt>
-                <elseif cond="shot == 'miss'"/>
-                    <prompt>You missed your opponent's ships.</prompt>
-                <elseif cond="shot == 'sunk'"/>
-                    <prompt>You sunk one of your opponent's ships.</prompt>
+            <if cond="confirm">
+                <data name="coordresult" src="/putcoord" namelist="token coord"/>
+                <var name="shot" expr="attr(coordresult, 'shot')"/>
+                <if cond="shot == 'alreadyShot'">
+                    <prompt>
+                        You have already shot at <value expr="coord"/>.
+                        Please specify another coordinate.
+                    </prompt>
+                    <clear/>
+                <else/>
+                    <if cond="shot == 'hit'">
+                        <prompt>You hit one of your opponent's ships.</prompt>
+                    <elseif cond="shot == 'miss'"/>
+                        <prompt>You missed your opponent's ships.</prompt>
+                    <elseif cond="shot == 'sunk'"/>
+                        <prompt>You sunk one of your opponent's ships.</prompt>
+                    </if>
+                    <goto next="#turn"/>
                 </if>
-                <goto next="#turn"/>
+            <else/>
+                <clear/>
             </if>
         </filled>
     </form>
