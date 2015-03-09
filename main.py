@@ -27,21 +27,14 @@ import game
 
 class SessionTokenToGame(object):
     """
-    Usage:
-    >>> g = SessionTokenToGame()
-    >>> g[42]
-    None
-    >>> g[123]
-    Game('42', 123)
-    >>> g[42]
-    Game('42', 123)
+
     """
 
     def __init__(self):
         self.session_token_game_dict = {}
         self.unmatched_players = set()
 
-    def __getitem__(self, player_token):
+    def get_game(self, player_token):
         if player_token not in self.session_token_game_dict:
             self.session_token_game_dict[player_token] = None
             self.unmatched_players.add(player_token)
@@ -58,6 +51,15 @@ class SessionTokenToGame(object):
             self.session_token_game_dict[player_token] = game.GameProxy(new_game, player_token)
 
         return self.session_token_game_dict[player_token]
+
+    def get(self, key, default=None):
+        return self.session_token_game_dict.get(key, default)
+
+    def __getitem__(self, key):
+        return self.session_token_game_dict[key]
+
+    def __delitem__(self, key):
+        del self.session_token_game_dict[key]
 
     @classmethod
     def generate_token(self):
@@ -95,7 +97,6 @@ class DynamicDataHandler(XMLHandler):
     def prepare(self):
         super().prepare()
         self.token = self.get_argument('token')
-        self.game = GAMES[self.token]
         self.out = {}
 
     def check_with_timeout(self, what, timeout_value=None):
@@ -120,16 +121,35 @@ class DynamicDataHandler(XMLHandler):
         self.render("error.xml", **error_data)
 
 
+class GameVanishedException(Exception):
+    pass
+
+
+class GameDynamicDataHandler(DynamicDataHandler):
+    '''
+    To be used for any handlers that handle the active game.
+    If the game no longer exists (e.g. because the opponent hung up) a GameVanishedException is raised,
+    '''
+
+    def prepare(self):
+        super().prepare()
+        if GAMES.get(self.token):
+            self.game = GAMES[self.token]
+        else:
+            self.set_status(410)
+            raise GameVanishedException()
+
+
 class WaitForGameHandler(DynamicDataHandler):
     @tornado.gen.coroutine
     def get(self):
         logger.debug("WaitForGame: %s", self.request.query)
-        ready = yield from self.check_with_timeout(lambda: GAMES[self.token], None)
+        ready = yield from self.check_with_timeout(lambda: GAMES.get_game(self.token), None)
         self.out['ready'] = str(bool(ready)).lower()
         self.write_xml(**self.out)
 
 
-class PlaceShipHandler(DynamicDataHandler):
+class PlaceShipHandler(GameDynamicDataHandler):
     def prepare(self):
         super(PlaceShipHandler, self).prepare()
         if not self.game:
@@ -173,7 +193,7 @@ class PlaceShipHandler(DynamicDataHandler):
         self.write_xml(**self.out)
 
 
-class WaitForTurnHandler(DynamicDataHandler):
+class WaitForTurnHandler(GameDynamicDataHandler):
     @tornado.gen.coroutine
     def get(self):
         logger.debug("WaitForTurn: %s", self.request.query)
@@ -190,12 +210,23 @@ class WaitForTurnHandler(DynamicDataHandler):
         self.write_xml(**self.out)
 
 
-class PutCoordHandler(DynamicDataHandler):
+class PutCoordHandler(GameDynamicDataHandler):
     def get(self):
         logger.debug("PutCoord: %s", self.request.query)
         coord = game.Coord(*self.get_argument('coord'))
         shot_result = self.game.shoot_field(coord)
         self.out['shot'] = shot_result.name
+        self.write_xml(**self.out)
+
+
+class QuitAppHandler(DynamicDataHandler):
+    def post(self):
+        logger.debug("QuitGame: %s", self.request.query)
+        game = GAMES.get(self.token)
+        if game:
+            opponent_token = game.get_opponent()
+            del GAMES[self.token]
+            del GAMES[opponent_token]
         self.write_xml(**self.out)
 
 
@@ -214,6 +245,7 @@ class WebViewHandler(tornado.web.RequestHandler):
         self.render("webview.html", token=SessionTokenToGame.generate_token(),
                     gridsize=game.Game.GRID_SIZE)
 
+
 if __name__ == "__main__":
     args = docopt(__doc__)
     loop = tornado.ioloop.IOLoop.current()
@@ -229,6 +261,7 @@ if __name__ == "__main__":
                                       (r"/placeship", PlaceShipHandler),
                                       (r"/waitforturn", WaitForTurnHandler),
                                       (r"/putcoord", PutCoordHandler),
+                                      (r"/quitapp", QuitAppHandler),
                                       (r"/log", LogHandler),
                                       (r"/webview", WebViewHandler),
                                       (r"/static/(.*)", tornado.web.StaticFileHandler, {'path': 'static'})
