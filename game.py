@@ -4,6 +4,8 @@ from enum import Enum
 import functools
 from types import MethodType
 
+import tornado.concurrent
+
 Orientation = Enum('Orientation', 'horizontal vertical')
 GameState = Enum('GameState', 'won lost canPlay wait')
 ShotResult = Enum('ShotResult', 'hit miss sunk alreadyShot')
@@ -94,6 +96,11 @@ class Game(object):
             p2_token: [],
         }
 
+        self.futures = {
+            p1_token: tornado.concurrent.Future(),
+            p2_token: tornado.concurrent.Future()
+        }
+
         self.whose_turn = self.p1_token
 
     def get_opponent(self, player_token):
@@ -104,17 +111,18 @@ class Game(object):
         :param player_token: unique player token
         :return: GameState
         """
-        all_ships_placed = not self.ships_to_place[self.p1_token] and not self.ships_to_place[self.p2_token]
-
         state = GameState.wait
         if not sum((ship.fields_intact for ship in self.own_ships[player_token])):
             state = GameState.lost
         elif not sum((ship.fields_intact for ship in self.own_ships[self.opponent[player_token]])):
             state = GameState.won
-        elif all_ships_placed and self.is_players_turn(player_token):
+        elif self.all_ships_placed() and self.is_players_turn(player_token):
             state = GameState.canPlay
 
         return state
+
+    def all_ships_placed(self):
+        return not self.ships_to_place[self.p1_token] and not self.ships_to_place[self.p2_token]
 
     def is_players_turn(self, player_token):
         """
@@ -122,6 +130,9 @@ class Game(object):
         :return: true if it is the players turn; false if it is not
         """
         return self.whose_turn == player_token
+
+    def wait_for_turn(self, player_token):
+        return self.futures[player_token]
 
     def get_ship_to_place(self, player_token):
         """
@@ -156,6 +167,9 @@ class Game(object):
         grid.put(ship_to_place, coords)
         self.ships_to_place[player_token].popleft()
 
+        if self.all_ships_placed():
+            self.futures[self.whose_turn].set_result(None)
+
     def shoot_field(self, player_token, opponent_field_coord):
         """
         shoots a field on the opponent's given by opponent_field_coord.
@@ -183,7 +197,10 @@ class Game(object):
                 shot_result = ShotResult.sunk
         if shot_result != ShotResult.alreadyShot:
             self.moves_done[player_token].append((opponent_field_coord, what_is_at_coord))
+
+            self.futures[self.whose_turn] = tornado.concurrent.Future()
             self.whose_turn = opponent
+            self.futures[self.whose_turn].set_result(None)
 
         return shot_result
 

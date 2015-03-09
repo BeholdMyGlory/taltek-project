@@ -10,6 +10,7 @@ Options:
   -l ADDR, --listen=ADDR    Address to listen on, by default all interfaces
 """
 
+import datetime
 import logging
 import uuid
 import math
@@ -17,6 +18,7 @@ import traceback
 
 from docopt import docopt
 from lxml import etree
+import tornado.concurrent
 import tornado.ioloop
 import tornado.gen
 import tornado.web
@@ -32,10 +34,12 @@ class SessionTokenToGame(object):
     def __init__(self):
         self.session_token_game_dict = {}
         self.unmatched_players = set()
+        self.futures = {}
 
     def get_game(self, player_token):
         if player_token not in self.session_token_game_dict:
             self.session_token_game_dict[player_token] = None
+            self.futures[player_token] = tornado.concurrent.Future()
             self.unmatched_players.add(player_token)
 
         if self.session_token_game_dict[player_token] is None and len(self.unmatched_players) > 1:
@@ -49,7 +53,10 @@ class SessionTokenToGame(object):
             self.session_token_game_dict[unmatched_player] = game.GameProxy(new_game, unmatched_player)
             self.session_token_game_dict[player_token] = game.GameProxy(new_game, player_token)
 
-        return self.session_token_game_dict[player_token]
+            self.futures[unmatched_player].set_result(self.session_token_game_dict[unmatched_player])
+            self.futures[player_token].set_result(self.session_token_game_dict[player_token])
+
+        return self.futures[player_token]
 
     def get(self, key, default=None):
         return self.session_token_game_dict.get(key, default)
@@ -59,6 +66,7 @@ class SessionTokenToGame(object):
 
     def __delitem__(self, key):
         del self.session_token_game_dict[key]
+        del self.futures[key]
 
     @classmethod
     def generate_token(self):
@@ -152,9 +160,14 @@ class WaitForGameHandler(PollDynamicDataHandler):
     def get(self):
         logger.debug("WaitForGame: %s", self.request.query)
         timeout_seconds = float(self.get_argument('timeout', 0))
-        ready = yield from self.check_with_timeout(lambda: GAMES.get_game(self.token), as_long_as_returns=None,
-                                                   timeout_seconds=timeout_seconds)
-        self.out['ready'] = str(bool(ready)).lower()
+        #ready = yield from self.check_with_timeout(lambda: GAMES.get_game(self.token), as_long_as_returns=None,
+                                                   #timeout_seconds=timeout_seconds)
+        try:
+            yield tornado.gen.with_timeout(datetime.timedelta(seconds=timeout_seconds),
+                                           GAMES.get_game(self.token))
+            self.out['ready'] = "true"
+        except tornado.gen.TimeoutError:
+            self.out['ready'] = "false"
         self.write_xml(**self.out)
 
 
@@ -207,9 +220,15 @@ class WaitForTurnHandler(GameDynamicDataHandler, PollDynamicDataHandler):
     def get(self):
         logger.debug("WaitForTurn: %s", self.request.query)
         timeout_seconds = float(self.get_argument('timeout', 0))
-        game_state = yield from self.check_with_timeout(lambda: self.game.get_game_state(),
-                                                        as_long_as_returns=game.GameState.wait,
-                                                        timeout_seconds=timeout_seconds)
+        try:
+            yield tornado.gen.with_timeout(datetime.timedelta(seconds=timeout_seconds),
+                                           self.game.wait_for_turn())
+        except tornado.gen.TimeoutError:
+            pass
+        #game_state = yield from self.check_with_timeout(lambda: self.game.get_game_state(),
+        #                                                as_long_as_returns=game.GameState.wait,
+        #                                                timeout_seconds=timeout_seconds)
+        game_state = self.game.get_game_state()
         self.out['gamestate'] = game_state.name
         if game_state == game.GameState.canPlay:
             (coord, what_was_at_coord) = self.game.get_last_opponent_move()
