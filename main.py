@@ -74,8 +74,12 @@ class XMLHandler(tornado.web.RequestHandler):
 # so changes to member variables won't be seen across requests
 class DialogHandler(XMLHandler):
     def get(self):
-        token = uuid.uuid1().hex
-        self.render("dialog.xml", token=token)
+        templateData = {
+            'token': uuid.uuid1().hex,
+            'grid_size': game.Game.GRID_SIZE,
+            'ships': game.Game.AVAILABLE_SHIPS,
+        }
+        self.render("dialog.xml", **templateData)
 
 
 class DynamicDataHandler(XMLHandler):
