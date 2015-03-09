@@ -99,6 +99,7 @@ class DynamicDataHandler(XMLHandler):
         self.out = {}
 
     def check_with_timeout(self, what, timeout_value=None):
+        # TODO: refector to be idiomatic
         start_time = time.time()
         result = None
         while True:
@@ -219,7 +220,6 @@ if __name__ == "__main__":
     logger = logging.getLogger('battleships-web')
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.FileHandler("battleships.log"))
-    logger.addHandler(logging.StreamHandler(stream=sys.stderr))
 
     # debug=True will reload the application if a file is changed,
     # and disable the template cache, among other things
