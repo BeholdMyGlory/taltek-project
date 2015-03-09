@@ -66,7 +66,8 @@ class XMLHandler(tornado.web.RequestHandler):
         self.set_header("Content-Type", "application/xml")
 
     def write_xml(self, tagname="response", **attributes):
-        response = etree.tostring(etree.Element(tagname, **attributes))
+        xml_doc = etree.ElementTree(etree.Element(tagname, **attributes))
+        response = etree.tostring(xml_doc, xml_declaration=True)
         logger.debug("Response: %s", response)
         self.write(response)
 
