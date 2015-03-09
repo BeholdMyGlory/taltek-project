@@ -2,12 +2,12 @@
 <vxml version="2.1" lang="en">
     <script src="/static/utils.js"/>
     <var name="token" expr="'{{token}}'"/>
+    <var name="hasDoneFirstWaitForGameRequest" expr="false"/>
 
     <form id="startform">
         <block>
             <prompt>
-                Hello and welcome to battleships. Please wait while we
-                match you up with another player.
+                Hello and welcome to battleships.
             </prompt>
             <goto next="#matchingform"/>
         </block>
@@ -15,9 +15,24 @@
 
     <form id="matchingform">
         <block>
-            <data name="match" src="/waitforgame?timeout=8"
-                  namelist="token" timeout="10s"
-                  fetchaudio="/static/silence.wav"/>
+            <if cond="!hasDoneFirstWaitForGameRequest">
+                <data name="match" src="/waitforgame"
+                      namelist="token" timeout="10s"
+                      fetchaudio="/static/silence.wav"/>
+                <if cond="match.documentElement.getAttribute('ready') == 'false'">
+                    <prompt>
+                        Please wait while we match you up with another player.
+                    </prompt>
+                    <assign name="hasDoneFirstWaitForGameRequest" expr="true" />
+                </if>
+            <else/>
+                <data name="match" src="/waitforgame?timeout=8"
+                      namelist="token" timeout="10s"
+                      fetchaudio="/static/silence.wav"/>
+                <if cond="match.documentElement.getAttribute('ready') == 'false'">
+                    <prompt>Waiting for another player.</prompt>
+                </if>
+            </if>
 
             <if cond="match.documentElement.getAttribute('ready') == 'true'">
                 <prompt>
@@ -28,7 +43,6 @@
                 </prompt>
                 <goto next="#placeshipform"/>
             <else/>
-                <prompt>Waiting for another player.</prompt>
                 <goto next="#matchingform"/>
             </if>
         </block>
