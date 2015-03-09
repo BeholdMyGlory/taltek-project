@@ -108,7 +108,7 @@
         var gameState = "none"
 
         function waitForGame() {
-            sendRequest("/waitforgame", "GET", {token: token}).then(function(response) {
+            sendRequest("/waitforgame", "GET", {token: token, timeout: 10}).then(function(response) {
                 if (response.getAttribute('ready') == "true") {
                     placeShip(null, null)
                 } else {
@@ -155,7 +155,7 @@
         function waitForTurn() {
             setStatus("Waiting for other player")
             gameState = "waiting"
-            sendRequest("/waitforturn", "GET", {token: token}).then(function(response) {
+            sendRequest("/waitforturn", "GET", {token: token, timeout: 18}).then(function(response) {
                 var state = response.getAttribute('gamestate')
                 if (state == "wait") {
                     waitForTurn()

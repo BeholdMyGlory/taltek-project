@@ -96,6 +96,9 @@ class Game(object):
 
         self.whose_turn = self.p1_token
 
+    def get_opponent(self, player_token):
+        return self.opponent[player_token]
+
     def get_game_state(self, player_token):
         """
         :param player_token: unique player token

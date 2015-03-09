@@ -12,8 +12,7 @@ Options:
 
 import logging
 import uuid
-import time
-import sys
+import math
 import traceback
 
 from docopt import docopt
@@ -27,21 +26,14 @@ import game
 
 class SessionTokenToGame(object):
     """
-    Usage:
-    >>> g = SessionTokenToGame()
-    >>> g[42]
-    None
-    >>> g[123]
-    Game('42', 123)
-    >>> g[42]
-    Game('42', 123)
+
     """
 
     def __init__(self):
         self.session_token_game_dict = {}
         self.unmatched_players = set()
 
-    def __getitem__(self, player_token):
+    def get_game(self, player_token):
         if player_token not in self.session_token_game_dict:
             self.session_token_game_dict[player_token] = None
             self.unmatched_players.add(player_token)
@@ -58,6 +50,15 @@ class SessionTokenToGame(object):
             self.session_token_game_dict[player_token] = game.GameProxy(new_game, player_token)
 
         return self.session_token_game_dict[player_token]
+
+    def get(self, key, default=None):
+        return self.session_token_game_dict.get(key, default)
+
+    def __getitem__(self, key):
+        return self.session_token_game_dict[key]
+
+    def __delitem__(self, key):
+        del self.session_token_game_dict[key]
 
     @classmethod
     def generate_token(self):
@@ -91,26 +92,10 @@ class DialogHandler(XMLHandler):
 
 
 class DynamicDataHandler(XMLHandler):
-    TIMEOUT_SECONDS = 9.0
-    POLL_INTERVAL_SECONDS = 0.5
-
     def prepare(self):
         super().prepare()
         self.token = self.get_argument('token')
-        self.game = GAMES[self.token]
         self.out = {}
-
-    def check_with_timeout(self, what, timeout_value=None):
-        # TODO: refector to be idiomatic
-        start_time = time.time()
-        result = None
-        while True:
-            result = what()
-            if result != timeout_value:
-                return result
-            elif time.time() - start_time > self.TIMEOUT_SECONDS:
-                return timeout_value
-            yield tornado.gen.sleep(self.POLL_INTERVAL_SECONDS)
 
     def write_error(self, status_code, **kwargs):
         (exc_type, value, tb) = kwargs['exc_info']
@@ -122,16 +107,58 @@ class DynamicDataHandler(XMLHandler):
         self.render("error.xml", **error_data)
 
 
-class WaitForGameHandler(DynamicDataHandler):
+class PollDynamicDataHandler(DynamicDataHandler):
+    POLL_INTERVAL_SECONDS = 0.5
+
+    def check_with_timeout(self, what, as_long_as_returns=None, timeout_seconds=0.0):
+        # TODO: refactor to be idiomatic wrt. to Tornado!
+
+        if timeout_seconds > 0:
+            times = math.floor(timeout_seconds / self.POLL_INTERVAL_SECONDS)
+        else:
+            times = 1
+        if not times:
+            times = 1
+
+        for _ in range(times):
+            result = what()
+            if result != as_long_as_returns:
+                return result
+            yield tornado.gen.sleep(self.POLL_INTERVAL_SECONDS)
+        return result
+
+
+class GameVanishedException(Exception):
+    pass
+
+
+class GameDynamicDataHandler(DynamicDataHandler):
+    '''
+    To be used for any handlers that handle the active game.
+    If the game no longer exists (e.g. because the opponent hung up) a GameVanishedException is raised,
+    '''
+
+    def prepare(self):
+        super().prepare()
+        if GAMES.get(self.token):
+            self.game = GAMES[self.token]
+        else:
+            self.set_status(410)
+            raise GameVanishedException()
+
+
+class WaitForGameHandler(PollDynamicDataHandler):
     @tornado.gen.coroutine
     def get(self):
         logger.debug("WaitForGame: %s", self.request.query)
-        ready = yield from self.check_with_timeout(lambda: GAMES[self.token], None)
+        timeout_seconds = float(self.get_argument('timeout', 0))
+        ready = yield from self.check_with_timeout(lambda: GAMES.get_game(self.token), as_long_as_returns=None,
+                                                   timeout_seconds=timeout_seconds)
         self.out['ready'] = str(bool(ready)).lower()
         self.write_xml(**self.out)
 
 
-class PlaceShipHandler(DynamicDataHandler):
+class PlaceShipHandler(GameDynamicDataHandler):
     def prepare(self):
         super(PlaceShipHandler, self).prepare()
         if not self.game:
@@ -175,12 +202,14 @@ class PlaceShipHandler(DynamicDataHandler):
         self.write_xml(**self.out)
 
 
-class WaitForTurnHandler(DynamicDataHandler):
+class WaitForTurnHandler(GameDynamicDataHandler, PollDynamicDataHandler):
     @tornado.gen.coroutine
     def get(self):
         logger.debug("WaitForTurn: %s", self.request.query)
+        timeout_seconds = float(self.get_argument('timeout', 0))
         game_state = yield from self.check_with_timeout(lambda: self.game.get_game_state(),
-                                                        timeout_value=game.GameState.wait)
+                                                        as_long_as_returns=game.GameState.wait,
+                                                        timeout_seconds=timeout_seconds)
         self.out['gamestate'] = game_state.name
         if game_state == game.GameState.canPlay:
             (coord, what_was_at_coord) = self.game.get_last_opponent_move()
@@ -192,12 +221,23 @@ class WaitForTurnHandler(DynamicDataHandler):
         self.write_xml(**self.out)
 
 
-class PutCoordHandler(DynamicDataHandler):
+class PutCoordHandler(GameDynamicDataHandler):
     def get(self):
         logger.debug("PutCoord: %s", self.request.query)
         coord = game.Coord(*self.get_argument('coord'))
         shot_result = self.game.shoot_field(coord)
         self.out['shot'] = shot_result.name
+        self.write_xml(**self.out)
+
+
+class QuitAppHandler(DynamicDataHandler):
+    def post(self):
+        logger.debug("QuitGame: %s", self.request.query)
+        game = GAMES.get(self.token)
+        if game:
+            opponent_token = game.get_opponent()
+            del GAMES[self.token]
+            del GAMES[opponent_token]
         self.write_xml(**self.out)
 
 
@@ -216,6 +256,7 @@ class WebViewHandler(tornado.web.RequestHandler):
         self.render("webview.html", token=SessionTokenToGame.generate_token(),
                     gridsize=game.Game.GRID_SIZE)
 
+
 if __name__ == "__main__":
     args = docopt(__doc__)
     loop = tornado.ioloop.IOLoop.current()
@@ -231,6 +272,7 @@ if __name__ == "__main__":
                                       (r"/placeship", PlaceShipHandler),
                                       (r"/waitforturn", WaitForTurnHandler),
                                       (r"/putcoord", PutCoordHandler),
+                                      (r"/quitapp", QuitAppHandler),
                                       (r"/log", LogHandler),
                                       (r"/webview", WebViewHandler),
                                       (r"/static/(.*)", tornado.web.StaticFileHandler, {'path': 'static'})
