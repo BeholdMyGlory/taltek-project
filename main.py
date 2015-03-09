@@ -89,6 +89,7 @@ class DynamicDataHandler(XMLHandler):
     POLL_INTERVAL_SECONDS = 0.5
 
     def prepare(self):
+        super().prepare()
         self.token = self.get_argument('token')
         self.game = GAMES[self.token]
         self.out = {}
