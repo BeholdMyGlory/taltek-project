@@ -175,7 +175,7 @@
                     if (response.hasAttribute("shiptypehit")) {
                         setStatus("Your opponent hit your " + response.getAttribute("shiptypehit") +
                                     " on coordinate " + response.getAttribute("coordhit") + ". " +
-                                    response.getAttribute("shippartsleft") + " squares left.")
+                                    response.getAttribute("shippartsleft") + " squares left.", true)
                     }
                     getOpponentCoords()
                     setStatus("Choose where to shoot.")
@@ -192,11 +192,15 @@
 
         var opponentCoordsFetched = false
         function getOpponentCoords() {
+            if (opponentCoordsFetched) {
+                return
+            }
             sendRequest("/getshipcoords", "GET", {token: token}).then(function(response) {
                 response.getAttribute('opponentcoords').split(" ").forEach(function(el) {
                     getGridElement(el).style.backgroundColor = "pink"
                 })
             })
+            opponentCoordsFetched = true
         }
 
         function putCoord(coord) {
