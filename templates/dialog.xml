@@ -216,12 +216,13 @@
 
     <catch event="error">
         <prompt>I am afraid, but an unknown error occurred. Please try calling again. Good bye!</prompt>
-        <disconnect/>
+        <var name="message" expr="unknown error"/>
+        <data method="post" namelist="token message _event" src="/log"/>
     </catch>
     <catch event="connection.disconnect.hangup">
-        <submit method="post" namelist="token" next="/quitapp"/>
+        <submit method="post" namelist="token" next="/quitapp?reason=hangup"/>
     </catch>
     <catch event="exit">
-        <submit method="post" namelist="token" next="/quitapp"/>
+        <submit method="post" namelist="token" next="/quitapp?reason=exit"/>
     </catch>
 </vxml>
