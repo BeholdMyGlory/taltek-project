@@ -3,6 +3,7 @@ from copy import copy
 from enum import Enum
 import functools
 from types import MethodType
+import itertools
 
 import tornado.concurrent
 
@@ -16,6 +17,7 @@ class Ship(object):
         self.name = name
         self.size = size
         self.fields_intact = fields_intact or size
+        self.coords = []
 
     def __repr__(self):
         return 'Ship(%s, %s, %s)' % (self.name, self.size, self.fields_intact)
@@ -90,7 +92,6 @@ class Game(object):
             p1_token: Grid(Game.GRID_SIZE),
             p2_token: Grid(Game.GRID_SIZE),
         }
-
         self.moves_done = {
             p1_token: [],
             p2_token: [],
@@ -106,12 +107,23 @@ class Game(object):
     def get_opponent(self, player_token):
         return self.opponent[player_token]
 
+    def get_own_ship_coords(self, player_token):
+        own_ships = self.own_ships[player_token]
+        own_ships_coords =  list(itertools.chain.from_iterable(ship.coords for ship in own_ships))
+        return own_ships_coords
+
+    def get_opponent_ship_coords(self, player_token):
+        opponent = self.get_opponent(player_token)
+        return self.get_own_ship_coords(opponent)
+
+
     def get_game_state(self, player_token):
         """
         :param player_token: unique player token
         :return: GameState
         """
         state = GameState.wait
+
         if not sum((ship.fields_intact for ship in self.own_ships[player_token])):
             state = GameState.lost
         elif not sum((ship.fields_intact for ship in self.own_ships[self.opponent[player_token]])):
@@ -280,4 +292,6 @@ class Grid(object):
 
         for coord in coords:
             self[coord] = ship
+        ship.coords = list(coords)
+
         print('Put %s at %s' % (str(ship), coords))

@@ -269,6 +269,11 @@ class LogHandler(XMLHandler):
         logger.info("POST-LOG: %s", self.request.body)
         self.write_xml()
 
+class GetShipCoordsHandler(GameDynamicDataHandler):
+    def get(self):
+        self.out['owncoords'] = ' '.join(str(coord) for coord in self.game.get_own_ship_coords())
+        self.out['opponentcoords'] = ' '.join(str(coord) for coord in self.game.get_opponent_ship_coords())
+        self.write_xml(**self.out)
 
 class WebViewHandler(tornado.web.RequestHandler):
     def get(self):
@@ -291,6 +296,7 @@ if __name__ == "__main__":
                                       (r"/placeship", PlaceShipHandler),
                                       (r"/waitforturn", WaitForTurnHandler),
                                       (r"/putcoord", PutCoordHandler),
+                                      (r"/getshipcoords", GetShipCoordsHandler),
                                       (r"/quitapp", QuitAppHandler),
                                       (r"/log", LogHandler),
                                       (r"/webview", WebViewHandler),
