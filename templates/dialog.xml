@@ -53,6 +53,11 @@
                     {{ num }} {{ ship.name + ("s" if num > 1 else "")}} of length
                     {{ ship.size }}{{ "." if i == len(ships) - 1 else "," }}
                     {% end %}
+
+                    {% if not explicit_feedback %}
+                    If I heard you incorrectly at any time, please say <break strength="x-weak"/> no
+                    <break strength="x-weak"/> to correct me.
+                    {% end %}
                 </prompt>
                 <goto next="#placeshipform"/>
             <else/>
