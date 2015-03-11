@@ -36,7 +36,15 @@
 
             <if cond="match.documentElement.getAttribute('ready') == 'true'">
                 <prompt>
-                    Found another player. Before the game can begin, you
+                    Found another player.
+
+                    The game is played on a {{ grid_size }} by {{ grid_size }} board.
+                    The columns are named A to {{ chr(ord('A') + grid_size - 1) }}, and the rows are named
+                    1 to {{ grid_size }}. Please specify coordinates in the same way as
+                    for example <break strength="x-weak"/> B1 <break strength="x-weak"/> or
+                    <break strength="x-weak"/> E3.
+
+                    Before the game can begin, you
                     need to choose where to place your ships.
 
                     You have
