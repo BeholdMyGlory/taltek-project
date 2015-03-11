@@ -36,10 +36,28 @@
 
             <if cond="match.documentElement.getAttribute('ready') == 'true'">
                 <prompt>
-                    Found another player. Before the game can begin, you
-                    need to choose where to place your 4 square long
-                    battleship, 3 square long submarine, and 2 square long
-                    destroyer.
+                    Found another player.
+
+                    The game is played on a {{ grid_size }} by {{ grid_size }} board.
+                    The columns are named A to {{ chr(ord('A') + grid_size - 1) }}, and the rows are named
+                    1 to {{ grid_size }}. Please specify coordinates in the same way as
+                    for example <break strength="x-weak"/> B1 <break strength="x-weak"/> or
+                    <break strength="x-weak"/> E3.
+
+                    Before the game can begin, you
+                    need to choose where to place your ships.
+
+                    You have
+                    {% for i, (ship, num) in enumerate(ships) %}
+                    {{ "and" if i == len(ships) - 1 else "" }}
+                    {{ num }} {{ ship.name + ("s" if num > 1 else "")}} of length
+                    {{ ship.size }}{{ "." if i == len(ships) - 1 else "," }}
+                    {% end %}
+
+                    {% if not explicit_feedback %}
+                    If I heard you incorrectly at any time, please say <break strength="x-weak"/> no
+                    <break strength="x-weak"/> to correct me.
+                    {% end %}
                 </prompt>
                 <goto next="#placeshipform"/>
             <else/>
