@@ -230,7 +230,7 @@ class WaitForTurnHandler(GameDynamicDataHandler, PollDynamicDataHandler):
         #                                                timeout_seconds=timeout_seconds)
         game_state = self.game.get_game_state()
         self.out['gamestate'] = game_state.name
-        if game_state == game.GameState.canPlay:
+        if game_state in (game.GameState.canPlay, game.GameState.lost):
             (coord, what_was_at_coord) = self.game.get_last_opponent_move()
             if coord:
                 self.out['coordhit'] = str(coord)
