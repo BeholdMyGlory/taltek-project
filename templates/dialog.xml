@@ -238,6 +238,18 @@
         </block>
     </form>
 
+    <nomatch>
+        <data method="post" namelist="_event" src="/log"/>
+        <prompt>I did not understand what you said, please try again.</prompt>
+    </nomatch>
+
+    <noinput>
+        <data method="post" namelist="_event" src="/log"/>
+        <reprompt/>
+    </noinput>
+
+
+
     <catch event="error">
         <prompt>I am afraid, but an unknown error occurred. Please try calling again. Good bye!</prompt>
         <var name="message" expr="unknown error"/>

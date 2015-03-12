@@ -11,6 +11,8 @@
         <if cond="confirm">
             {% raw action %}
         <else/>
+            <var name="log_msg" expr="'negative_feedback'"/>
+            <data method="post" namelist="token log_msg {{ ' '.join(fields) }} confirm" src="/log"/>
             <clear namelist="{{ ' '.join(fields) }} confirm"/>
         </if>
     </filled>
