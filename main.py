@@ -90,11 +90,13 @@ class XMLHandler(tornado.web.RequestHandler):
 # so changes to member variables won't be seen across requests
 class DialogHandler(XMLHandler):
     def get(self):
+        explicit_feedback = bool(int(self.get_argument('explicit_feedback', '1')))
+
         template_data = {
             'token': SessionTokenToGame.generate_token(),
             'grid_size': game.Game.GRID_SIZE,
             'ships': game.Game.AVAILABLE_SHIPS,
-            'explicit_feedback': True,
+            'explicit_feedback': explicit_feedback,
             'feedback_timeout': '1s'
         }
         self.render("dialog.xml", **template_data)

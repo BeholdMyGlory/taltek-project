@@ -3,8 +3,14 @@
     <script src="/static/utils.js"/>
     <var name="token" expr="'{{token}}'"/>
     <var name="hasDoneFirstWaitForGameRequest" expr="false"/>
+    {% if explicit_feedback %}
+    <var name="feedback" expr="'explicit'"/>
+    {% else %}
+    <var name="feedback" expr="'implicit'"/>
+    {% end %}
 
     <form id="startform">
+        <data method="post" namelist="token feedback" src="/log"/>
         <block>
             <prompt>
                 Hello and welcome to battleships.
