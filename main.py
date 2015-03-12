@@ -97,7 +97,7 @@ class DialogHandler(XMLHandler):
             'grid_size': game.Game.GRID_SIZE,
             'ships': game.Game.AVAILABLE_SHIPS,
             'explicit_feedback': explicit_feedback,
-            'feedback_timeout': '1s'
+            'feedback_timeout': '2s'
         }
         self.render("dialog.xml", **template_data)
 
