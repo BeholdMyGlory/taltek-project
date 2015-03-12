@@ -12,6 +12,7 @@ Options:
 
 import datetime
 import logging
+logging.basicConfig(format="%(created)s:%(levelname)s:%(name)s:%(module)s:%(message)s")
 import uuid
 import math
 import traceback
