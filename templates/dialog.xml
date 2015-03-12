@@ -249,12 +249,13 @@
     </noinput>
 
 
-
+<!-- Uncomment in production environments. In our case we want to hear what went wrong.
     <catch event="error">
         <prompt>I am afraid, but an unknown error occurred. Please try calling again. Good bye!</prompt>
         <var name="message" expr="unknown error"/>
         <data method="post" namelist="token message _event" src="/log"/>
     </catch>
+-->
     <catch event="connection.disconnect.hangup">
         <submit method="post" namelist="token" next="/quitapp?reason=hangup"/>
     </catch>
